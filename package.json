@@ -1,0 +1,24 @@
+{
+  "name": "moleculer-files-filesystem",
+  "version": "0.0.1",
+  "description": "Filesystem driver for moleculer-files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "moleculer",
+    "moleculer-files",
+    "filesystem"
+  ],
+  "author": "Daniele Draganti",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.5.5",
+    "recursive-readdir": "^2.2.2",
+    "uuid": "^3.3.3"
+  },
+  "devDependencies": {
+    "moleculer": "^0.13.10"
+  }
+}
