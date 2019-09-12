@@ -38,6 +38,13 @@ class FSAdapter {
 		return Promise.resolve();
 	}
 
+  // Checks if the file to access is in the defined subdirectory; returns an error otherwise
+  checkIsInDir(file) {
+  	const relative = path.relative(path.join(this.uri, this.collection), path.join(this.uri, this.collection, file));
+  	if (relative && !relative.startsWith('..')) return;
+  	throw new MoleculerError('You are trying to access an unauthorized path.', 403, 'E_UNAUTHORIZED');
+	}
+
 	async find(filters) {
 		const list = await readdir(path.join(this.uri, this.collection));
 		return list.map((file) => {return path.relative(path.join(this.uri, this.collection), file)}).filter((file) => true);
@@ -49,6 +56,7 @@ class FSAdapter {
 	}
 
   findById(fd) {
+    this.checkIsInDir(fd);
 	  const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
 
 	  return new Promise((resolve, reject) => {
@@ -64,8 +72,9 @@ class FSAdapter {
 	}
 
 	save(entity, meta) {
+  	const filename = meta.id || uuidv4();
+  	this.checkIsInDir(filename);
   	return new Promise(async (resolve, reject) => {
-    	const filename = meta.id || uuidv4();
     	try {
     	  await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
       } catch(e) {
@@ -94,6 +103,7 @@ class FSAdapter {
 	}
 
 	async removeById(_id) {
+  	this.checkIsInDir(_id);
   	try {
   		await fs.unlinkAsync((path.join(this.uri, this.collection, _id)));
   		return Promise.resolve({id: _id});
