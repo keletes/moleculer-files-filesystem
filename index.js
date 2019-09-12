@@ -38,47 +38,16 @@ class FSAdapter {
 		return Promise.resolve();
 	}
 
-	/**
-	 * Find all entities by filters.
-	 *
-	 * Available filter props:
-	 * 	- limit
-	 *  - offset
-	 *  - sort
-	 *  - search
-	 *  - searchFields
-	 *  - query
-	 *
-	 * @param {Object} filters
-	 * @returns {Promise<Array>}
-	 *
-	 * @memberof FSAdapter
-	 */
 	async find(filters) {
 		const list = await readdir(path.join(this.uri, this.collection));
 		return list.map((file) => {return path.relative(path.join(this.uri, this.collection), file)}).filter((file) => true);
 	}
 
-	/**
-	 * Find an entity by query
-	 *
-	 * @param {Object} query
-	 * @returns {Promise}
-	 * @memberof FSAdapter
-	 */
 	findOne(query) {
 		// To be implemented
 		return;
 	}
 
-	/**
-	 * Find an entities by ID.
-	 *
-	 * @param {String} _id
-	 * @returns {Promise<Object>} Return with the found document.
-	 *
-	 * @memberof FSAdapter
-	 */
   findById(fd) {
 	  const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
 
@@ -89,32 +58,11 @@ class FSAdapter {
 
 	}
 
-	/**
-	 * Get count of filtered entites.
-	 *
-	 * Available query props:
-	 *  - search
-	 *  - searchFields
-	 *  - query
-	 *
-	 * @param {Object} [filters={}]
-	 * @returns {Promise<Number>} Return with the count of documents.
-	 *
-	 * @memberof FSAdapter
-	 */
 	async count(filters = {}) {
 		const list = await this.find(filters);
 		return list.length;
 	}
 
-	/**
-	 * Insert an entity.
-	 *
-	 * @param {Object} entity
-	 * @returns {Promise<Object>} Return with the inserted document.
-	 *
-	 * @memberof FSAdapter
-	 */
 	save(entity, meta) {
   	return new Promise(async (resolve, reject) => {
     	const filename = meta.id || uuidv4();
@@ -137,39 +85,14 @@ class FSAdapter {
     });
 	}
 
-	/**
-	 * Update an entity by ID and `update`
-	 *
-	 * @param {String} _id - ObjectID as hexadecimal string.
-	 * @param {Object} update
-	 * @returns {Promise<Object>} Return with the updated document.
-	 *
-	 * @memberof FSAdapter
-	 */
 	async updateById(entity, meta) {
 		return await this.save(entity, meta);
 	}
 
-	/**
-	 * Remove entities which are matched by `query`
-	 *
-	 * @param {Object} query
-	 * @returns {Promise<Number>} Return with the count of deleted documents.
-	 *
-	 * @memberof FSAdapter
-	 */
 	removeMany(query) {
 		// To Be Implemented.
 	}
 
-	/**
-	 * Remove an entity by ID
-	 *
-	 * @param {String} _id - ObjectID as hexadecimal string.
-	 * @returns {Promise<Object>} Return with the removed document.
-	 *
-	 * @memberof FSAdapter
-	 */
 	async removeById(_id) {
   	try {
   		await fs.unlinkAsync((path.join(this.uri, this.collection, _id)));
@@ -179,13 +102,6 @@ class FSAdapter {
     }
 	}
 
-	/**
-	 * Clear all entities from collection
-	 *
-	 * @returns {Promise}
-	 *
-	 * @memberof FSAdapter
-	 */
 	clear() {
 		return this.collection.deleteMany({}).then(res => res.deletedCount);
 	}
