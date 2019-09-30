@@ -90,7 +90,7 @@ class FSAdapter {
 
   		const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
       entity.pipe(s);
-      s.on('finish', () => resolve(s));
+      s.on('finish', () => resolve({id: filename}));
     });
 	}
 
