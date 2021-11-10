@@ -64,10 +64,10 @@ class FSAdapter {
 
 		// get a key from the cache
 		console.log('fd search ket', fd);
-		const stream = cache.getKey(fd) // { foo: 'var' }
+		console.log('cache get', cache.getKey(fd))
 
-		// this.checkIsInDir(fd);
-		// const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
+		this.checkIsInDir(fd);
+		const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
 
 		return new Promise((resolve, reject) => {
 			stream.on('open', () => resolve(stream));
