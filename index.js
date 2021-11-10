@@ -6,6 +6,8 @@ const fs = Promise.promisifyAll(require("fs"));
 const path = require("path");
 const uuidv4 = require("uuid/v4");
 const readdir = require("recursive-readdir");
+const getStream = require('get-stream');
+const flatCache = require('flat-cache')
 
 class FSAdapter {
 
@@ -56,8 +58,15 @@ class FSAdapter {
 	}
 
 	findById(fd) {
-		this.checkIsInDir(fd);
-		const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
+		// loads the cache, if one does not exists for the given
+		// Id a new one will be prepared to be created
+		let cache = flatCache.load('localCache');
+
+		// get a key from the cache
+		const stream = cache.getKey(fd) // { foo: 'var' }
+
+		// this.checkIsInDir(fd);
+		// const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
 
 		return new Promise((resolve, reject) => {
 			stream.on('open', () => resolve(stream));
@@ -72,27 +81,58 @@ class FSAdapter {
 	}
 
 	async save(entity, meta) {
-		return new Promise(async (resolve, reject) => {
-			const filename = meta.id || uuidv4();
-			this.checkIsInDir(filename);
-			try {
-				await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
-			} catch(e) {
-				if (e.code == 'ENOENT') {
-					try {
-						await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
-					} catch(e) {
-						if (e.code != 'EEXIST') throw e;
-					}
+		// loads the cache, if one does not exists for the given
+		// Id a new one will be prepared to be created
+		const filename = meta.id || uuidv4();
+		this.checkIsInDir(filename);
+		try {
+			await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
+		} catch(e) {
+			if (e.code == 'ENOENT') {
+				try {
+					await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
+				} catch(e) {
+					if (e.code != 'EEXIST') throw e;
 				}
-				else throw e;
 			}
+			else throw e;
+		}
+		const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
 
-			const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
-			return await entity
+		// loads the cache, if one does not exists for the given
+		// Id a new one will be prepared to be created
+		let cache = flatCache.load('localCache');
+
+		// sets a key on the cache
+		cache.setKey(filename, await getStream(s));
+		// save it to disk
+		cache.save();
+
+		return await entity
 				.pipe(s)
 				.on('finish', () => resolve({id: filename}));
-		});
+
+		// return new Promise(async (resolve, reject) => {
+		// 	const filename = meta.id || uuidv4();
+		// 	this.checkIsInDir(filename);
+		// 	try {
+		// 		await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
+		// 	} catch(e) {
+		// 		if (e.code == 'ENOENT') {
+		// 			try {
+		// 				await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
+		// 			} catch(e) {
+		// 				if (e.code != 'EEXIST') throw e;
+		// 			}
+		// 		}
+		// 		else throw e;
+		// 	}
+
+		// 	const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
+		// 	return await entity
+		// 		.pipe(s)
+		// 		.on('finish', () => resolve({id: filename}));
+		// });
 	}
 
 	async updateById(entity, meta) {
