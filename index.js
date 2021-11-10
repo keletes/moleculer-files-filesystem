@@ -63,6 +63,7 @@ class FSAdapter {
 		let cache = flatCache.load('localCache');
 
 		// get a key from the cache
+		console.log('fd search ket', fd);
 		const stream = cache.getKey(fd) // { foo: 'var' }
 
 		// this.checkIsInDir(fd);
@@ -81,37 +82,38 @@ class FSAdapter {
 	}
 
 	async save(entity, meta) {
-		// loads the cache, if one does not exists for the given
-		// Id a new one will be prepared to be created
-		const filename = meta.id || uuidv4();
-		this.checkIsInDir(filename);
-		try {
-			await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
-		} catch(e) {
-			if (e.code == 'ENOENT') {
-				try {
-					await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
-				} catch(e) {
-					if (e.code != 'EEXIST') throw e;
+		return new Promise(async (resolve, reject) => {
+			// loads the cache, if one does not exists for the given
+			// Id a new one will be prepared to be created
+			const filename = meta.id || uuidv4();
+			this.checkIsInDir(filename);
+			try {
+				await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
+			} catch(e) {
+				if (e.code == 'ENOENT') {
+					try {
+						await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
+					} catch(e) {
+						if (e.code != 'EEXIST') throw e;
+					}
 				}
+				else throw e;
 			}
-			else throw e;
-		}
-		const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
+			const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
 
-		// loads the cache, if one does not exists for the given
-		// Id a new one will be prepared to be created
-		let cache = flatCache.load('localCache');
+			// loads the cache, if one does not exists for the given
+			// Id a new one will be prepared to be created
+			let cache = flatCache.load('localCache');
+			console.log('filename set ket', filename);
+			// sets a key on the cache
+			cache.setKey(filename, await getStream(s));
+			// save it to disk
+			cache.save();
 
-		// sets a key on the cache
-		cache.setKey(filename, await getStream(s));
-		// save it to disk
-		cache.save();
-
-		return await entity
-				.pipe(s)
-				.on('finish', () => resolve({id: filename}));
-
+			return await entity
+					.pipe(s)
+					.on('finish', () => resolve({id: filename}));
+		});
 		// return new Promise(async (resolve, reject) => {
 		// 	const filename = meta.id || uuidv4();
 		// 	this.checkIsInDir(filename);
