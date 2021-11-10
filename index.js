@@ -10,7 +10,7 @@ const readdir = require("recursive-readdir");
 class FSAdapter {
 
 	constructor(uri, opts, dbName) {
-	  this.uri = uri;
+		this.uri = uri;
 		this.opts = opts;
 	}
 
@@ -19,8 +19,8 @@ class FSAdapter {
 		this.service = service;
 
 		if (!this.uri) {
-  		throw new ServiceSchemaError("Missing `uri` definition!");
-    }
+			throw new ServiceSchemaError("Missing `uri` definition!");
+		}
 
 		if (!this.service.schema.collection) {
 			/* istanbul ignore next */
@@ -30,19 +30,19 @@ class FSAdapter {
 	}
 
 	async connect() {
-    await fs.lstatAsync(path.join(this.uri, this.service.schema.collection));
+		await fs.lstatAsync(path.join(this.uri, this.service.schema.collection));
 		return;
-  }
+	}
 
 	disconnect() {
 		return Promise.resolve();
 	}
 
-  // Checks if the file to access is in the defined subdirectory; returns an error otherwise
-  checkIsInDir(file) {
-  	const relative = path.relative(path.join(this.uri, this.collection), path.join(this.uri, this.collection, file));
-  	if (relative && !relative.startsWith('..')) return;
-  	throw new MoleculerError('You are trying to access an unauthorized path.', 403, 'E_UNAUTHORIZED');
+	// Checks if the file to access is in the defined subdirectory; returns an error otherwise
+	checkIsInDir(file) {
+		const relative = path.relative(path.join(this.uri, this.collection), path.join(this.uri, this.collection, file));
+		if (relative && !relative.startsWith('..')) return;
+		throw new MoleculerError('You are trying to access an unauthorized path.', 403, 'E_UNAUTHORIZED');
 	}
 
 	async find(filters) {
@@ -55,14 +55,14 @@ class FSAdapter {
 		return;
 	}
 
-  findById(fd) {
-    this.checkIsInDir(fd);
-	  const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
+	findById(fd) {
+		this.checkIsInDir(fd);
+		const stream = fs.createReadStream(path.join(this.uri, this.collection, fd));
 
-	  return new Promise((resolve, reject) => {
-  	  stream.on('open', () => resolve(stream));
-  	  stream.on('error', (err) => resolve(null));
-	  });
+		return new Promise((resolve, reject) => {
+			stream.on('open', () => resolve(stream));
+			stream.on('error', (err) => resolve(null));
+		});
 
 	}
 
@@ -71,27 +71,28 @@ class FSAdapter {
 		return list.length;
 	}
 
-	save(entity, meta) {
-  	const filename = meta.id || uuidv4();
-  	this.checkIsInDir(filename);
-  	return new Promise(async (resolve, reject) => {
-    	try {
-    	  await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
-      } catch(e) {
-        if (e.code == 'ENOENT') {
-          try {
-            await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
-          } catch(e) {
-            if (e.code != 'EEXIST') throw e;
-          }
-        }
-        else throw e;
-      }
+	async save(entity, meta) {
+		return new Promise(async (resolve, reject) => {
+			const filename = meta.id || uuidv4();
+			this.checkIsInDir(filename);
+			try {
+				await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
+			} catch(e) {
+				if (e.code == 'ENOENT') {
+					try {
+						await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
+					} catch(e) {
+						if (e.code != 'EEXIST') throw e;
+					}
+				}
+				else throw e;
+			}
 
-  		const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
-      entity.pipe(s);
-      s.on('finish', () => resolve({id: filename}));
-    });
+			const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
+			return await entity
+				.pipe(s)
+				.on('finish', () => resolve({id: filename}));
+		});
 	}
 
 	async updateById(entity, meta) {
@@ -103,13 +104,13 @@ class FSAdapter {
 	}
 
 	async removeById(_id) {
-  	this.checkIsInDir(_id);
-  	try {
-  		await fs.unlinkAsync((path.join(this.uri, this.collection, _id)));
-  		return Promise.resolve({id: _id});
-    } catch(e) {
-      return null;
-    }
+		this.checkIsInDir(_id);
+		try {
+			await fs.unlinkAsync((path.join(this.uri, this.collection, _id)));
+			return Promise.resolve({id: _id});
+		} catch(e) {
+			return null;
+		}
 	}
 
 	clear() {
