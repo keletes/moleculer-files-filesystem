@@ -9,7 +9,7 @@ const readdir = require("recursive-readdir");
 
 class FSAdapter {
 
-	constructor(uri, opts, dbName) {
+	constructor(uri, opts) {
 	  this.uri = uri;
 		this.opts = opts;
 	}
@@ -72,26 +72,29 @@ class FSAdapter {
 	}
 
 	save(entity, meta) {
-  	const filename = meta.id || uuidv4();
-  	this.checkIsInDir(filename);
-  	return new Promise(async (resolve, reject) => {
-    	try {
-    	  await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
-      } catch(e) {
-        if (e.code == 'ENOENT') {
-          try {
-            await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
-          } catch(e) {
-            if (e.code != 'EEXIST') throw e;
-          }
-        }
-        else throw e;
-      }
+		const filename = meta.id || uuidv4();
+		this.checkIsInDir(filename);
+		return new Promise(async (resolve, reject) => {
+			try {
+				await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
+			} catch(e) {
+				if (e.code == 'ENOENT') {
+					try {
+						await fs.mkdirAsync(path.dirname(path.join(this.uri, this.collection, filename)), {recursive: true});
+					} catch(e) {
+						if (e.code != 'EEXIST') return reject("File does not exist.", 500, "EEXIST", e);
+					}
+				}
+				else return reject("Error.", 500, "EEXIST", e);
+			}
 
-  		const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
-      entity.pipe(s);
-      s.on('finish', () => resolve({id: filename}));
-    });
+			const s = fs.createWriteStream(path.join(this.uri, this.collection, filename));
+			entity.pipe(s);
+			s.on('error', function (e) {
+				reject(new MoleculerError("Cannot write file.", 500, "ERR_WRITE_FILE", e));
+			});
+			s.on('finish', () => resolve({id: filename}));
+		});
 	}
 
 	async updateById(entity, meta) {
