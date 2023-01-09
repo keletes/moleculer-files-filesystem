@@ -61,7 +61,7 @@ class FSAdapter {
 
 	  return new Promise((resolve, reject) => {
   	  stream.on('open', () => resolve(stream));
-  	  stream.on('error', (err) => resolve(null));
+  	  stream.on('error', (err) => reject(new MoleculerError("File not found", 404, "ERR_NOT_FOUND")));
 	  });
 
 	}
@@ -74,6 +74,7 @@ class FSAdapter {
 	save(entity, meta) {
 		const filename = meta.id || uuidv4();
 		this.checkIsInDir(filename);
+		if (!isStream(entity)) throw new MoleculerError("Entity is not a stream", 400, "E_BAD_REQUEST");
 		return new Promise(async (resolve, reject) => {
 			try {
 				await fs.accessAsync(path.dirname(path.join(this.uri, this.collection, filename)));
